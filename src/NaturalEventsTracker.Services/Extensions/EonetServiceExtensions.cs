@@ -19,6 +19,17 @@ namespace NaturalEventsTracker.Services.Extensions
             return events;
         }
 
+        public static Event ReadEvent(this string stringContent)
+        {
+            var jsonSerializer = JsonSerializer.Create(new JsonSerializerSettings
+            {
+                Error = HandleDeserializationError
+            });
+
+            var events = JObject.Parse(stringContent)?.ToObject<Event>(jsonSerializer) ?? null;
+            return events;
+        }
+
         private static void HandleDeserializationError(object sender, ErrorEventArgs errorEventArgs)
         {
             errorEventArgs.ErrorContext.Handled = true;

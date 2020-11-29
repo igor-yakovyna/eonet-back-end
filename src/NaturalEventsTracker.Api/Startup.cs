@@ -24,16 +24,37 @@ namespace NaturalEventsTracker.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // Enable Cross-Origin Requests from local Angular app.
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(
+                    builder =>
+                    {
+                        builder.WithOrigins("http://localhost:4200");
+                    });
+            });
+
             services.AddControllers();
 
             services.AddHttpClient();
 
             services.AddAutoMapper(config =>
             {
+                config.CreateMap<Source, SourceViewModel>()
+                    .ForMember(d => d.Id, o => o.MapFrom(s => s.id))
+                    .ForMember(d => d.Url, o => o.MapFrom(s => s.link));
+
+                config.CreateMap<Geometric, GeometriesViewModel>()
+                    .ForMember(d => d.Date, o => o.MapFrom(s => s.date))
+                    .ForMember(d => d.Coordinates, o => o.MapFrom(s => s.coordinates));
+
                 config.CreateMap<Event, EventViewModel>()
                     .ForMember(d => d.Id, o => o.MapFrom(s => s.id))
                     .ForMember(d => d.Title, o => o.MapFrom(s => s.title))
-                    .ForMember(d => d.Descrition, o => o.MapFrom(s => s.description));
+                    .ForMember(d => d.Descrition, o => o.MapFrom(s => s.description))
+                    .ForMember(d => d.IsClosed, o => o.MapFrom(s => s.closed != null))
+                    .ForMember(d => d.Sources, o => o.MapFrom(s => s.sources))
+                    .ForMember(d => d.Geometries, o => o.MapFrom(s => s.geometries));
             }, typeof(Startup));
 
             services.AddTransient<IEonetService, EonetService>();
@@ -44,6 +65,8 @@ namespace NaturalEventsTracker.Api
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseCors();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();

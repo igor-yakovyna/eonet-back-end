@@ -31,7 +31,7 @@ namespace NaturalEventsTracker.Services.Implementations
             _eonetSettings = option?.Value.EonetSettings ?? throw new ArgumentNullException();
         }
 
-        public async Task<IEnumerable<EventViewModel>> GetAllEvents()
+        public async Task<IEnumerable<EventViewModel>> GetAllEventsAsync()
         {
             try
             {
@@ -55,9 +55,79 @@ namespace NaturalEventsTracker.Services.Implementations
             }
         }
 
-        public Task<EventViewModel> GetEvent(string id)
+        public async Task<EventViewModel> GetEventAsync(string id)
         {
-            throw new System.NotImplementedException();
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient();
+
+                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/events/{id}");
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var events = responseContent.ReadEvent();
+
+                var eventViewModel = _mapper.Map<Event, EventViewModel>(events);
+
+                return eventViewModel;
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Unable to retrieve EONET Event.";
+                _logger.LogError(ex, errorMessage);
+                throw ex;
+            }
+        }
+
+        public async Task<IEnumerable<EventViewModel>> GetFilteredEventsAsync(string sources = null, string status = null, int? days = null)
+        {
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient();
+
+                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/events{BuildQueryStringParams(sources, status, days)}");
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var events = responseContent.ReadEvents();
+
+                var eventsViewModel = _mapper.Map<IEnumerable<Event>, IEnumerable<EventViewModel>>(events);
+
+                return eventsViewModel;
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Unable to retrieve EONET Events.";
+                _logger.LogError(ex, errorMessage);
+                throw ex;
+            }
+        }
+
+        private static string BuildQueryStringParams(string sources = null, string status = null, int? days = null)
+        {
+            var queryString = string.Empty;
+
+            if(!string.IsNullOrEmpty(sources))
+            {
+                queryString = ConcatQueryParam(queryString, "source", sources);
+            }
+
+            if(!string.IsNullOrEmpty(status))
+            {
+                queryString = ConcatQueryParam(queryString, "status", status);
+            }
+
+            if (days != null && days > 0)
+            {
+                queryString = ConcatQueryParam(queryString, "days", days.ToString());
+            }
+
+            return queryString;
+        }
+
+        private static string ConcatQueryParam(string queryString, string paramName, string paramValue)
+        {
+            return string.IsNullOrEmpty(queryString) ? string.Concat(queryString, $"?{paramName}={paramValue}") : string.Concat(queryString, $"&{paramName}={paramValue}");
         }
     }
 }
