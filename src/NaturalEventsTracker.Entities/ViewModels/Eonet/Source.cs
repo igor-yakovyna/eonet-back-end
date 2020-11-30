@@ -22,5 +22,7 @@
         /// which is the same as the Events API endpoint only filtered to return only events from this source.
         /// </summary>
         public string link { get; set; }
+
+        public string url { get; set; }
     }
 }

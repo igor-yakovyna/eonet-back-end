@@ -42,7 +42,7 @@ namespace NaturalEventsTracker.Api
             {
                 config.CreateMap<Source, SourceViewModel>()
                     .ForMember(d => d.Id, o => o.MapFrom(s => s.id))
-                    .ForMember(d => d.Url, o => o.MapFrom(s => s.link));
+                    .ForMember(d => d.Url, o => o.MapFrom(s => s.url));
 
                 config.CreateMap<Geometric, GeometriesViewModel>()
                     .ForMember(d => d.Date, o => o.MapFrom(s => s.date))
