@@ -9,6 +9,6 @@ namespace NaturalEventsTracker.Services.Interfaces
         Task<IEnumerable<EventViewModel>> GetAllEventsAsync();
         Task<EventViewModel> GetEventAsync(string id);
         Task<IEnumerable<EventViewModel>> GetFilteredEventsAsync(string sources = null, string status = null, int? days = null);
-
+        Task<IEnumerable<SourceViewModel>> GetEventsSources();
     }
 }

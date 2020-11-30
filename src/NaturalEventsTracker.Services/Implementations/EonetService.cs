@@ -103,6 +103,30 @@ namespace NaturalEventsTracker.Services.Implementations
             }
         }
 
+        public async Task<IEnumerable<SourceViewModel>> GetEventsSources()
+        {
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient();
+
+                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/sources");
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var sources = responseContent.ReadSources();
+
+                var sourcesViewModel = _mapper.Map<IEnumerable<Source>, IEnumerable<SourceViewModel>>(sources);
+
+                return sourcesViewModel;
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Unable to retrieve EONET Events.";
+                _logger.LogError(ex, errorMessage);
+                throw ex;
+            }
+        }
+
         private static string BuildQueryStringParams(string sources = null, string status = null, int? days = null)
         {
             var queryString = string.Empty;

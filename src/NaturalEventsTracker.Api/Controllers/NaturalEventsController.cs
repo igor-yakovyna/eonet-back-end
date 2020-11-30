@@ -33,5 +33,11 @@ namespace NaturalEventsTracker.Api.Controllers
         {
             return Ok(await _eonetService.GetFilteredEventsAsync(sources, status, days));
         }
+
+        [HttpGet("sources")]
+        public async Task<IActionResult> GetSources()
+        {
+            return Ok(await _eonetService.GetEventsSources());
+        }
     }
 }

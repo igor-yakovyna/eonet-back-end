@@ -30,6 +30,17 @@ namespace NaturalEventsTracker.Services.Extensions
             return events;
         }
 
+        public static IEnumerable<Source> ReadSources(this string stringContent)
+        {
+            var jsonSerializer = JsonSerializer.Create(new JsonSerializerSettings
+            {
+                Error = HandleDeserializationError
+            });
+
+            var sources = JObject.Parse(stringContent)["sources"]?.ToObject<IEnumerable<Source>>(jsonSerializer);
+            return sources;
+        }
+
         private static void HandleDeserializationError(object sender, ErrorEventArgs errorEventArgs)
         {
             errorEventArgs.ErrorContext.Handled = true;

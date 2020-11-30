@@ -8,7 +8,7 @@ namespace NaturalEventsTracker.Entities.ViewModels
         public string Title { get; set; }
         public string Descrition { get; set; }
         public bool IsClosed { get; set; }
-        public IEnumerable<SourceViewModel> Sources { get; set; }
+        public IEnumerable<EventSourceViewModel> Sources { get; set; }
         public IEnumerable<GeometriesViewModel> Geometries { get; set; }
     }
 }

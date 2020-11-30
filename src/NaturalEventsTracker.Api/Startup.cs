@@ -40,7 +40,7 @@ namespace NaturalEventsTracker.Api
 
             services.AddAutoMapper(config =>
             {
-                config.CreateMap<Source, SourceViewModel>()
+                config.CreateMap<Source, EventSourceViewModel>()
                     .ForMember(d => d.Id, o => o.MapFrom(s => s.id))
                     .ForMember(d => d.Url, o => o.MapFrom(s => s.url));
 
@@ -55,6 +55,11 @@ namespace NaturalEventsTracker.Api
                     .ForMember(d => d.IsClosed, o => o.MapFrom(s => s.closed != null))
                     .ForMember(d => d.Sources, o => o.MapFrom(s => s.sources))
                     .ForMember(d => d.Geometries, o => o.MapFrom(s => s.geometries));
+
+                config.CreateMap<Source, SourceViewModel>()
+                    .ForMember(d => d.Id, o => o.MapFrom(s => s.id))
+                    .ForMember(d => d.Title, o => o.MapFrom(s => s.title))
+                    .ForMember(d => d.Link, o => o.MapFrom(s => s.link));
             }, typeof(Startup));
 
             services.AddTransient<IEonetService, EonetService>();
