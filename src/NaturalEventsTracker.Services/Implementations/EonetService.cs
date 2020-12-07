@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NaturalEventsTracker.Entities.AppSettingsModels;
@@ -10,42 +12,48 @@ using NaturalEventsTracker.Entities.ViewModels.Eonet;
 using NaturalEventsTracker.Services.Extensions;
 using NaturalEventsTracker.Services.Interfaces;
 using AutoMapper;
+using NaturalEventsTracker.Entities.Constants;
 
 namespace NaturalEventsTracker.Services.Implementations
 {
     public class EonetService : IEonetService
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IMemoryCache _memoryCache;
         private readonly ILogger<EonetService> _logger;
         private readonly IMapper _mapper;
         private readonly EonetSettings _eonetSettings;
 
         public EonetService(IHttpClientFactory httpClientFactory,
+            IMemoryCache memoryCache,
             ILogger<EonetService> logger,
             IMapper mapper,
             IOptions<AppSettings> option)
         {
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException();
+            _memoryCache = memoryCache ?? throw new ArgumentNullException();
             _logger = logger ?? throw new ArgumentNullException();
             _mapper = mapper ?? throw new ArgumentNullException();
             _eonetSettings = option?.Value.EonetSettings ?? throw new ArgumentNullException();
         }
 
-        public async Task<IEnumerable<EventViewModel>> GetAllEventsAsync()
+        public async Task<IEnumerable<EventViewModel>> GetAllEvents()
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient();
+                IEnumerable<EventViewModel> allEvents = null;
 
-                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/events");
-                response.EnsureSuccessStatusCode();
+                if (!_memoryCache.TryGetValue(CacheKeys.MultipleNaturalEvents, out allEvents))
+                {
+                    var openEvents = await GetFilteredEvents(status: "open");
+                    var closedEvents = await GetFilteredEvents(status: "closed");
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var events = responseContent.ReadEvents();
-                
-                var eventsViewModel = _mapper.Map<IEnumerable<Event>, IEnumerable<EventViewModel>>(events);
+                    allEvents = openEvents.Union(closedEvents).OrderBy(e => e.Id);
 
-                return eventsViewModel;
+                    _memoryCache.Set(CacheKeys.MultipleNaturalEvents, allEvents, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1)));
+                }
+
+                return allEvents;
             }
             catch (Exception ex)
             {
@@ -55,20 +63,27 @@ namespace NaturalEventsTracker.Services.Implementations
             }
         }
 
-        public async Task<EventViewModel> GetEventAsync(string id)
+        public async Task<EventViewModel> GetEvent(string id)
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient();
+                EventViewModel eventViewModel = null;
 
-                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/events/{id}");
-                response.EnsureSuccessStatusCode();
+                if (!_memoryCache.TryGetValue(string.Concat(id, CacheKeys.SingleNaturalEvent), out eventViewModel))
+                {
+                    var httpClient = _httpClientFactory.CreateClient();
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var events = responseContent.ReadEvent();
+                    var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/events/{id}");
+                    response.EnsureSuccessStatusCode();
 
-                var eventViewModel = _mapper.Map<Event, EventViewModel>(events);
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var events = responseContent.ReadEvent();
 
+                    eventViewModel = _mapper.Map<Event, EventViewModel>(events);
+
+                    _memoryCache.Set(string.Concat(id, CacheKeys.SingleNaturalEvent), eventViewModel, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1)));
+                }
+                
                 return eventViewModel;
             }
             catch (Exception ex)
@@ -79,7 +94,7 @@ namespace NaturalEventsTracker.Services.Implementations
             }
         }
 
-        public async Task<IEnumerable<EventViewModel>> GetFilteredEventsAsync(string sources = null, string status = null, int? days = null)
+        public async Task<IEnumerable<EventViewModel>> GetFilteredEvents(string sources = null, string status = null, int? days = null)
         {
             try
             {
@@ -107,15 +122,22 @@ namespace NaturalEventsTracker.Services.Implementations
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient();
+                IEnumerable<SourceViewModel> sourcesViewModel = null;
 
-                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/sources");
-                response.EnsureSuccessStatusCode();
+                if (!_memoryCache.TryGetValue(CacheKeys.EventsSources, out sourcesViewModel))
+                {
+                    var httpClient = _httpClientFactory.CreateClient();
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var sources = responseContent.ReadSources();
+                    var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/sources");
+                    response.EnsureSuccessStatusCode();
 
-                var sourcesViewModel = _mapper.Map<IEnumerable<Source>, IEnumerable<SourceViewModel>>(sources);
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var sources = responseContent.ReadSources();
+
+                    sourcesViewModel = _mapper.Map<IEnumerable<Source>, IEnumerable<SourceViewModel>>(sources);
+
+                    _memoryCache.Set(CacheKeys.EventsSources, sourcesViewModel, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1)));
+                }
 
                 return sourcesViewModel;
             }
@@ -131,12 +153,12 @@ namespace NaturalEventsTracker.Services.Implementations
         {
             var queryString = string.Empty;
 
-            if(!string.IsNullOrEmpty(sources))
+            if (!string.IsNullOrEmpty(sources))
             {
                 queryString = ConcatQueryParam(queryString, "source", sources);
             }
 
-            if(!string.IsNullOrEmpty(status))
+            if (!string.IsNullOrEmpty(status))
             {
                 queryString = ConcatQueryParam(queryString, "status", status);
             }

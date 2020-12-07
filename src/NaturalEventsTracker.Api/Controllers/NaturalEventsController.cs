@@ -19,19 +19,19 @@ namespace NaturalEventsTracker.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            return Ok(await _eonetService.GetAllEventsAsync());
+            return Ok(await _eonetService.GetAllEvents());
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(string id)
         {
-            return Ok(await _eonetService.GetEventAsync(id));
+            return Ok(await _eonetService.GetEvent(id));
         }
 
         [HttpGet("filter/{sources?}/{status?}/{days?}")]
         public async Task<IActionResult> Get(string sources = null, string status = null, int? days = null)
         {
-            return Ok(await _eonetService.GetFilteredEventsAsync(sources, status, days));
+            return Ok(await _eonetService.GetFilteredEvents(sources, status, days));
         }
 
         [HttpGet("sources")]

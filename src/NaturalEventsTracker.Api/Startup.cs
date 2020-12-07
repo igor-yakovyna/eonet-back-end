@@ -38,6 +38,8 @@ namespace NaturalEventsTracker.Api
 
             services.AddHttpClient();
 
+            services.AddMemoryCache();
+
             services.AddAutoMapper(config =>
             {
                 config.CreateMap<Source, EventSourceViewModel>()
