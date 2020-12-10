@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using NaturalEventsTracker.Entities.ViewModels;
 using NaturalEventsTracker.Services.Interfaces;
 
 namespace NaturalEventsTracker.Api.Controllers
@@ -31,7 +32,7 @@ namespace NaturalEventsTracker.Api.Controllers
         [HttpGet("filter/{sources?}/{status?}/{days?}")]
         public async Task<IActionResult> Get(string sources = null, string status = null, int? days = null)
         {
-            return Ok(await _eonetService.GetFilteredEvents(sources, status, days));
+            return Ok(await _eonetService.GetFilteredEvents(new FiltersViewModel {Sources = sources, Status = status, Days = days }));
         }
 
         [HttpGet("sources")]

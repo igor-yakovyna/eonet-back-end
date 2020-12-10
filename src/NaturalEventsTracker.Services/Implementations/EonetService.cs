@@ -83,7 +83,7 @@ namespace NaturalEventsTracker.Services.Implementations
 
                     _memoryCache.Set(string.Concat(id, CacheKeys.SingleNaturalEvent), eventViewModel, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1)));
                 }
-                
+
                 return eventViewModel;
             }
             catch (Exception ex)
@@ -94,27 +94,18 @@ namespace NaturalEventsTracker.Services.Implementations
             }
         }
 
-        public async Task<IEnumerable<EventViewModel>> GetFilteredEvents(string sources = null, string status = null, int? days = null)
+        public async Task<IEnumerable<EventViewModel>> GetFilteredEvents(FiltersViewModel filters)
         {
-            try
+            if(string.IsNullOrEmpty(filters.Status))
             {
-                var httpClient = _httpClientFactory.CreateClient();
+                var openEvents = await GetFilteredEvents(filters.Sources, "open", filters.Days);
+                var closedEvents = await GetFilteredEvents(filters.Sources, "closed", filters.Days);
 
-                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/events{BuildQueryStringParams(sources, status, days)}");
-                response.EnsureSuccessStatusCode();
-
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var events = responseContent.ReadEvents();
-
-                var eventsViewModel = _mapper.Map<IEnumerable<Event>, IEnumerable<EventViewModel>>(events);
-
-                return eventsViewModel;
+                return openEvents.Union(closedEvents).OrderBy(e => e.Id);
             }
-            catch (Exception ex)
+            else
             {
-                var errorMessage = $"Unable to retrieve EONET Events.";
-                _logger.LogError(ex, errorMessage);
-                throw ex;
+                return await GetFilteredEvents(filters.Sources, filters.Status, filters.Days);
             }
         }
 
@@ -140,6 +131,30 @@ namespace NaturalEventsTracker.Services.Implementations
                 }
 
                 return sourcesViewModel;
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Unable to retrieve EONET Events.";
+                _logger.LogError(ex, errorMessage);
+                throw ex;
+            }
+        }
+
+        private async Task<IEnumerable<EventViewModel>> GetFilteredEvents(string sources = null, string status = null, int? days = null)
+        {
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient();
+
+                var response = await httpClient.GetAsync($"https://{_eonetSettings.Host}/api/{_eonetSettings.ApiVersion}/events{BuildQueryStringParams(sources, status, days)}");
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var events = responseContent.ReadEvents();
+
+                var eventsViewModel = _mapper.Map<IEnumerable<Event>, IEnumerable<EventViewModel>>(events);
+
+                return eventsViewModel;
             }
             catch (Exception ex)
             {

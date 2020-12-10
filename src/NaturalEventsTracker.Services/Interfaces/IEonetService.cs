@@ -8,7 +8,7 @@ namespace NaturalEventsTracker.Services.Interfaces
     {
         Task<IEnumerable<EventViewModel>> GetAllEvents();
         Task<EventViewModel> GetEvent(string id);
-        Task<IEnumerable<EventViewModel>> GetFilteredEvents(string sources = null, string status = null, int? days = null);
+        Task<IEnumerable<EventViewModel>> GetFilteredEvents(FiltersViewModel filters);
         Task<IEnumerable<SourceViewModel>> GetEventsSources();
     }
 }
